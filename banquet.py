@@ -20,19 +20,17 @@ Attendees with no guests are called "lonelies". Attendees with guests but no all
 are called "outsiders". Neither lonelies nor outsiders are considered in the DBSCAN clustering, 
 but we keep them in the collection frame.
 
-We choose the DBSCAN clustering with the minimum value of epsilon that satisfies the Banquet Table
+We choose the DBSCAN clustering with the maximum value of epsilon that satisfies the Banquet Table
 constraint. Other DBSCAN parameters are chosen by the user, and we usually set min_samples=2.
 """
 
 def get_guest_lists(collection_frame, reference_frame, feature_columns, d):
-    """
-    Vectorized computation of guest lists using broadcasting
-    """
     collection_array = collection_frame[feature_columns].values
     reference_array = reference_frame[feature_columns].values
-    distances = np.linalg.norm(collection_array[:, np.newaxis] - reference_array, axis=2)
+    distances = np.linalg.norm(collection_array[:, np.newaxis] - reference_array, axis=2) # broadcasting
     reference_indices = reference_frame.index.values
     guest_lists = [list(reference_indices[row < d]) for row in distances]
+    
     return pd.Series(guest_lists, index=collection_frame.index)
 
 def get_allowable_tablemates_lists(guest_lists):
@@ -68,7 +66,6 @@ def is_tabling_allowable(tabling, allowable_tablemates_lists):
     for table in tables:
         table_members_set = set(tabling[tabling == table].index)
         for member in table_members_set:
-            # Remove the current member from the table members set for this check
             candidate_tablemates = table_members_set - {member}
             if not candidate_tablemates.issubset(allowable_tablemates_lists.loc[member]):
                 return False
@@ -202,7 +199,6 @@ def overlap_coefficient(tabling, guest_lists):
         table_guest_set = set.union(*[set(guest_lists[member]) for member in table_members])
         table_guest_sets.append(table_guest_set)
 
-    # Compute the overlap coefficient for each pair of tables
     coefficients = []
     for i in range(len(table_guest_sets)):
         for j in range(i+1, len(table_guest_sets)):
@@ -228,7 +224,6 @@ def jaccard_index(tabling, guest_lists):
         table_guest_set = set.union(*[set(guest_lists[member]) for member in table_members])
         table_guest_sets.append(table_guest_set)
 
-    # Compute the Jaccard index for each pair of tables
     indices = []
     for i in range(len(table_guest_sets)):
         for j in range(i+1, len(table_guest_sets)):
@@ -252,7 +247,6 @@ def unique_vs_shared_guests(tabling, guest_lists):
     all_guests = set()
     shared_guests = set()
 
-    # Gather all guests and their occurrences
     guest_occurrences = {}
     for table in tables:
         table_members = tabling[tabling == table].index
@@ -262,7 +256,6 @@ def unique_vs_shared_guests(tabling, guest_lists):
         for guest in table_guests:
             guest_occurrences[guest] = guest_occurrences.get(guest, 0) + 1
 
-    # Determine which guests are shared across tables
     for guest, count in guest_occurrences.items():
         if count > 1:
             shared_guests.add(guest)
@@ -283,7 +276,6 @@ def find_inflection_points(mf, diff_threshold=0.1):
     Returns a list of crucial values of d, where metrics make big jumps.
     """
 
-    # Find several inflection points for each metric
     inflection_points = []
     for col in [item for item in mf.columns if item != 'd']:
         for i in range(1, len(mf)):
@@ -291,7 +283,6 @@ def find_inflection_points(mf, diff_threshold=0.1):
                 d_value = round(mf.d.iloc[i], 6)
                 inflection_points.append(d_value)
 
-    # return all inflection points appearing more than once
     return [item for item in inflection_points if inflection_points.count(item) > 1]    
 
 def plot_metrics(metrics_list,inflection_points=True,diff_threshold=0.1):
@@ -303,7 +294,6 @@ def plot_metrics(metrics_list,inflection_points=True,diff_threshold=0.1):
     plt.gca().set_facecolor('gainsboro')
     plt.grid(True, color='white')
 
-    # Add labels, title, and legend with thicker lines
     plt.xlabel('d values')
     plt.ylabel('Metric values')
     plt.title('Tabling metrics over different d values')
@@ -311,7 +301,6 @@ def plot_metrics(metrics_list,inflection_points=True,diff_threshold=0.1):
     for col in [item for item in mf.columns if item != 'd']:
         plt.plot(mf.d,mf[col],label=col,linewidth=5)
     
-    # add vertical lines and labels for inflection points
     if inflection_points:
         inflection_points = find_inflection_points(mf,diff_threshold=diff_threshold)
         for point in inflection_points:
