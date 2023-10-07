@@ -1,9 +1,14 @@
 # Usage
 
 ```python
+import pandas as pd
 import os,sys
 sys.path.append(os.path.expanduser("~") + "/banquettable")
 from banquet import banquet_tabling, plot_metrics, get_guest_lists
+
+collection_frame = pd.DataFrame(...)
+reference_frame = pd.DataFrame(...)
+featcols = [...]
 
 metrics_list = []
 for i,d in enumerate(np.linspace(0.05,0.1,100)):
